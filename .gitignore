@@ -1,5 +1,7 @@
 # Security
 .env
+logs/
+data/
 
 # Python
 __pycache__/
