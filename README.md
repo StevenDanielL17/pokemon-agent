@@ -2,7 +2,7 @@
 
 > *A Pokémon-inspired AI agent that lives on Twitter and evolves based on its Base blockchain wallet balance*
 
-[![Twitter Follow](https://img.shields.io/twitter/follow/PolyPuff_Agent?style=social)](https://twitter.com/PolyPuff_Agent)
+[![Twitter Follow](https://img.shields.io/twitter/follow/PolyPuff_Agent?style=social)](https://x.com/PuffPolyAgent)
 [![Base Network](https://img.shields.io/badge/Network-Base-0052FF)](https://base.org)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
