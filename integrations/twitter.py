@@ -35,9 +35,9 @@ class TwitterClient:
                 self.access_secret
             )
              self.api_v1 = tweepy.API(auth)
-             logger.info("✅ Twitter client initialized successfully")
+             logger.info("Twitter client initialized successfully")
         else:
-            logger.warning("⚠️ Twitter credentials missing in .env")
+            logger.warning("Twitter credentials missing in .env")
             self.client = None
             self.api_v1 = None
 
@@ -54,13 +54,13 @@ class TwitterClient:
             True if successful, False otherwise
         """
         if not self.client:
-            logger.error("❌ Twitter client not initialized")
+            logger.error("Twitter client not initialized")
             return False
 
         try:
             # Validate tweet length
             if len(text) > 280:
-                logger.error(f"❌ Tweet too long: {len(text)} characters")
+                logger.error(f"Tweet too long: {len(text)} characters")
                 text = text[:277] + "..."  # Truncate with ellipsis
             
             # Handle image upload if provided
@@ -68,7 +68,7 @@ class TwitterClient:
             if image_path and os.path.exists(image_path):
                 media = self.api_v1.media_upload(filename=image_path)
                 media_id = media.media_id
-                logger.info(f"📸 Image uploaded: {image_path}")
+                logger.info(f"Image uploaded: {image_path}")
             
             # Post tweet
             if media_id:
@@ -80,16 +80,16 @@ class TwitterClient:
                 response = self.client.create_tweet(text=text)
             
             tweet_id = response.data['id']
-            logger.info(f"✅ Tweet posted successfully! ID: {tweet_id}")
-            logger.info(f"📝 Content: {text}")
+            logger.info(f"Tweet posted successfully! ID: {tweet_id}")
+            logger.info(f"Content: {text}")
             
             return True
             
         except tweepy.TweepyException as e:
-            logger.error(f"❌ Twitter API error: {str(e)}")
+            logger.error(f"Twitter API error: {str(e)}")
             return False
         except Exception as e:
-            logger.error(f"❌ Unexpected error posting tweet: {str(e)}")
+            logger.error(f"Unexpected error posting tweet: {str(e)}")
             return False
     
     def get_mentions(self, limit: int = 10):
@@ -107,7 +107,7 @@ class TwitterClient:
             )
             return mentions.data if mentions.data else []
         except Exception as e:
-            logger.error(f"❌ Error fetching mentions: {str(e)}")
+            logger.error(f"Error fetching mentions: {str(e)}")
             return []
     
     def get_my_user_id(self) -> str:
@@ -121,7 +121,7 @@ class TwitterClient:
             user = self.client.get_me()
             return user.data.id
         except Exception as e:
-            logger.error(f"❌ Error getting user ID: {str(e)}")
+            logger.error(f"Error getting user ID: {str(e)}")
             return None
     
     def update_profile_image(self, image_path: str) -> bool:
@@ -133,10 +133,10 @@ class TwitterClient:
 
         try:
             self.api_v1.update_profile_image(filename=image_path)
-            logger.info(f"✅ Profile image updated: {image_path}")
+            logger.info(f"Profile image updated: {image_path}")
             return True
         except Exception as e:
-            logger.error(f"❌ Error updating profile image: {str(e)}")
+            logger.error(f"Error updating profile image: {str(e)}")
             return False
 
 

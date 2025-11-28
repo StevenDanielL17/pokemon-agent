@@ -22,7 +22,8 @@ class Settings:
     # Base Blockchain (will use on Day 3)
     BASE_WALLET_ADDRESS = os.getenv("BASE_WALLET_ADDRESS", "")
     BASE_WALLET_PRIVATE_KEY = os.getenv("BASE_WALLET_PRIVATE_KEY", "")
-    BASE_RPC_URL = os.getenv("BASE_RPC_URL", "https://mainnet.base.org")
+    # BASE_RPC_URL = os.getenv("BASE_RPC_URL", "https://sepolia.base.org")
+    BASE_RPC_URL = "https://sepolia.drpc.org"  # DRPC Sepolia
     
     # Agent Settings
     TWEET_INTERVAL_MINUTES = int(os.getenv("TWEET_INTERVAL_MINUTES", 60))

@@ -4,6 +4,7 @@ from dotenv import load_dotenv
 from config.prompts import STAGE_PROMPTS
 from config.settings import settings
 from utils.logger import logger
+import random
 
 load_dotenv()
 
@@ -14,8 +15,9 @@ class GeminiClient:
     
     def __init__(self):
         genai.configure(api_key=settings.GOOGLE_API_KEY)
-        self.model = genai.GenerativeModel('gemini-1.5-flash')
-        logger.info("✅ Google Gemini client initialized (FREE)")
+        # Use gemini-flash-latest as it is explicitly available
+        self.model = genai.GenerativeModel('gemini-flash-latest')
+        logger.info("Google Gemini client initialized (FREE)")
     
     def generate_tweet(self, stage: str, context: dict) -> str:
         """
@@ -63,19 +65,40 @@ IMPORTANT: Reply with ONLY the tweet text, no quotes, no explanation.
             if len(tweet) > 280:
                 tweet = tweet[:277] + "..."
             
-            logger.info(f"✅ Generated tweet: {tweet}")
+            logger.info(f"Generated tweet: {tweet}")
             return tweet
             
         except Exception as e:
-            logger.error(f"❌ Error generating tweet: {str(e)}")
+            logger.error(f"Error generating tweet: {str(e)}")
             # Fallback tweet if AI fails
             fallbacks = {
-                "egg": "🥚 still here... still smol...",
-                "slime": "💧 just vibing on the blockchain ✨",
-                "beast": "🔥 building my empire, one block at a time",
-                "sick": "😢 not feeling good..."
+                "egg": [
+                    "still here... still smol...",
+                    "waiting to hatch...",
+                    "warm and cozy in my shell...",
+                    "dreaming of the moon..."
+                ],
+                "slime": [
+                    "just vibing on the blockchain",
+                    "fluid like liquidity",
+                    "bloop bloop...",
+                    "sliding through the mempool"
+                ],
+                "beast": [
+                    "building my empire, one block at a time",
+                    "roaring at the charts",
+                    "hunting for alpha",
+                    "unstoppable force"
+                ],
+                "sick": [
+                    "not feeling good...",
+                    "need some medicine...",
+                    "system error...",
+                    "recovering..."
+                ]
             }
-            return fallbacks.get(stage, "🥚 ...")
+            options = fallbacks.get(stage, ["..."])
+            return random.choice(options)
 
 
 # Quick test function
@@ -92,7 +115,7 @@ def test_gemini():
         "time_of_day": "morning"
     }
     
-    print("\n🧪 Testing tweet generation for all stages...\n")
+    print("\nTesting tweet generation for all stages...\n")
     
     for stage in ["egg", "slime", "beast", "sick"]:
         tweet = client.generate_tweet(stage, test_context)

@@ -1,6 +1,8 @@
 # Security
 .env
 logs/
+*.log
+*.txt
 data/
 
 # Python

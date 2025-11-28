@@ -1,6 +1,8 @@
 {
-  "stage": "egg",
-  "balance": 0.0,
-  "tweet_count": 1,
-  "last_updated": "2025-11-27T13:49:33.960754"
+  "stage": "beast",
+  "balance": 0.05,
+  "previous_balance": 0.0,
+  "tweet_count": 7,
+  "last_balance_check": "2025-11-28T22:19:23.315801",
+  "last_updated": "2025-11-28T22:19:24.041355"
 }

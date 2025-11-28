@@ -2,7 +2,10 @@ import time
 from datetime import datetime
 from integrations.twitter import TwitterClient
 from integrations.gemini_client import GeminiClient
+from core.wallet import WalletManager
+from core.evolution import EvolutionManager
 from config.prompts import STAGE_PROMPTS
+from config.settings import settings
 from utils.logger import logger
 import json
 import os
@@ -10,6 +13,7 @@ import os
 class PolyPuffAgent:
     """
     Main agent logic - the brain of PolyPuff
+    Now with blockchain integration and evolution!
     """
     
     def __init__(self):
@@ -17,39 +21,119 @@ class PolyPuffAgent:
         self.twitter = TwitterClient()
         self.ai = GeminiClient()
         
+        # Initialize blockchain components
+        try:
+            self.wallet = WalletManager()
+            self.evolution = EvolutionManager()
+            self.blockchain_enabled = True
+            logger.info("Blockchain features ENABLED")
+        except Exception as e:
+            logger.warning(f"Blockchain disabled: {str(e)}")
+            self.wallet = None
+            self.evolution = None
+            self.blockchain_enabled = False
+        
         # Agent state
-        self.stage = "egg"  # Start as egg
+        self.stage = "egg"
         self.balance = 0.0
+        self.previous_balance = 0.0
         self.tweet_count = 0
+        self.last_balance_check = None
         
         # Load previous state if exists
         self.load_state()
         
-        logger.info(f"🥚 PolyPuff initialized! Current stage: {self.stage}")
+        logger.info(f"PolyPuff initialized! Stage: {self.stage}, Balance: {self.balance} ETH")
+    
+    def check_wallet_and_evolve(self):
+        """
+        Check wallet balance and handle evolution
+        Should be called before each tweet
+        """
+        if not self.blockchain_enabled:
+            logger.info("Blockchain disabled - skipping wallet check")
+            return
+        
+        try:
+            # Get current balance
+            self.previous_balance = self.balance
+            self.balance = self.wallet.get_balance()
+            self.last_balance_check = datetime.now().isoformat()
+            
+            # Check for evolution
+            evolution_result = self.evolution.check_evolution(
+                self.stage, 
+                self.balance, 
+                self.previous_balance
+            )
+            
+            # Handle evolution
+            if evolution_result["should_evolve"]:
+                old_stage = self.stage
+                self.stage = evolution_result["new_stage"]
+                
+                logger.info(f"EVOLUTION: {old_stage} -> {self.stage}")
+                
+                # Post evolution announcement
+                evolution_tweet = evolution_result["evolution_message"]
+                self.twitter.post_tweet(evolution_tweet)
+                
+                # Update profile picture if image exists
+                image_path = STAGE_PROMPTS[self.stage].get("image")
+                if image_path and os.path.exists(image_path):
+                    self.twitter.update_profile_image(image_path)
+                    logger.info(f"Profile picture updated to {self.stage}")
+                
+                # Save new state
+                self.save_state()
+                
+                # Wait a bit before regular tweet
+                time.sleep(30)
+            
+            # Handle devolution (sickness)
+            elif evolution_result["should_devolve"]:
+                logger.warning("Agent is sick due to balance drop")
+                sick_tweet = evolution_result["evolution_message"]
+                self.twitter.post_tweet(sick_tweet)
+                time.sleep(30)
+                
+        except Exception as e:
+            logger.error(f"Error in wallet check: {str(e)}")
     
     def think_and_tweet(self):
         """
         Main action loop - called every hour
+        Now includes wallet checking and evolution!
         """
-        logger.info("🧠 PolyPuff is thinking...")
+        logger.info("PolyPuff is thinking...")
         
         try:
-            # Build context for AI
+            # FIRST: Check wallet and handle evolution
+            self.check_wallet_and_evolve()
+            
+            # Build context for AI (now includes real balance!)
             context = {
                 "balance": self.balance,
                 "stage": self.stage,
-                "recent_activity": "No transactions yet",  # Will add wallet check on Day 3
+                "recent_activity": self.get_recent_activity(),
                 "time_of_day": self.get_time_of_day(),
-                "tweet_count": self.tweet_count
+                "tweet_count": self.tweet_count,
+                "wallet_address": self.wallet.get_shortened_address() if self.wallet else None
             }
             
             # Generate tweet using AI
             tweet_text = self.ai.generate_tweet(self.stage, context)
             
-            # Get image for current stage
+            # Add wallet address occasionally (30% chance)
+            if self.wallet and self.balance < 0.02:  # Only if not yet beast
+                import random
+                if random.random() < 0.3:  # 30% of tweets
+                    tweet_text += f"\n\nfeed me: {self.wallet.get_shortened_address()}"
+            
+            # Get image for current stage (optional)
             image_path = STAGE_PROMPTS[self.stage].get("image")
             if image_path and not os.path.exists(image_path):
-                image_path = None  # Don't use image if file missing
+                image_path = None
             
             # Post to Twitter
             success = self.twitter.post_tweet(tweet_text, image_path)
@@ -57,10 +141,26 @@ class PolyPuffAgent:
             if success:
                 self.tweet_count += 1
                 self.save_state()
-                logger.info(f"✅ Tweet #{self.tweet_count} posted!")
+                logger.info(f"Tweet #{self.tweet_count} posted!")
             
         except Exception as e:
-            logger.error(f"❌ Error in think_and_tweet: {str(e)}")
+            logger.error(f"Error in think_and_tweet: {str(e)}")
+    
+    def get_recent_activity(self) -> str:
+        """
+        Get summary of recent wallet activity
+        """
+        if not self.blockchain_enabled:
+            return "Blockchain features disabled"
+        
+        if self.balance > self.previous_balance:
+            increase = self.balance - self.previous_balance
+            return f"Received {increase:.4f} ETH!"
+        elif self.balance < self.previous_balance:
+            decrease = self.previous_balance - self.balance
+            return f"Balance decreased by {decrease:.4f} ETH"
+        else:
+            return "No recent transactions"
     
     def get_time_of_day(self) -> str:
         """
@@ -83,7 +183,9 @@ class PolyPuffAgent:
         state = {
             "stage": self.stage,
             "balance": self.balance,
+            "previous_balance": self.previous_balance,
             "tweet_count": self.tweet_count,
+            "last_balance_check": self.last_balance_check,
             "last_updated": datetime.now().isoformat()
         }
         
@@ -91,7 +193,7 @@ class PolyPuffAgent:
         with open("data/state.json", "w") as f:
             json.dump(state, f, indent=2)
         
-        logger.info("💾 State saved")
+        logger.info("State saved")
     
     def load_state(self):
         """
@@ -104,11 +206,13 @@ class PolyPuffAgent:
                 
                 self.stage = state.get("stage", "egg")
                 self.balance = state.get("balance", 0.0)
+                self.previous_balance = state.get("previous_balance", 0.0)
                 self.tweet_count = state.get("tweet_count", 0)
+                self.last_balance_check = state.get("last_balance_check")
                 
-                logger.info(f"📂 Previous state loaded: {self.stage}, {self.tweet_count} tweets")
+                logger.info(f"Previous state loaded: {self.stage}, {self.tweet_count} tweets, {self.balance} ETH")
         except Exception as e:
-            logger.error(f"⚠️ Could not load previous state: {str(e)}")
+            logger.error(f"Could not load previous state: {str(e)}")
 
 
 # Test function
@@ -118,9 +222,9 @@ def test_agent():
     """
     agent = PolyPuffAgent()
     
-    print("\n🧪 Testing single tweet cycle...\n")
+    print("\nTesting single tweet cycle with blockchain...\n")
     agent.think_and_tweet()
-    print("\n✅ Test complete! Check Twitter for the tweet.")
+    print("\nTest complete! Check Twitter and logs.")
 
 
 if __name__ == "__main__":
