@@ -7,8 +7,10 @@ from core.evolution import EvolutionManager
 from config.prompts import STAGE_PROMPTS
 from config.settings import settings
 from utils.logger import logger
+from utils.helpers import get_progress_bar, format_eth, get_emoji_for_stage
 import json
 import os
+import random
 
 class PolyPuffAgent:
     """
@@ -99,11 +101,48 @@ class PolyPuffAgent:
                 
         except Exception as e:
             logger.error(f"Error in wallet check: {str(e)}")
+
+    def should_post_progress_update(self) -> bool:
+        """
+        Decide if this tweet should be a progress update
+        Returns True 20% of the time if not yet beast
+        """
+        if self.stage == "beast":
+            return False
+        return random.random() < 0.2  # 20% chance
+
+    def generate_progress_tweet(self) -> str:
+        """
+        Generate a progress update tweet showing evolution progress
+        """
+        if self.stage == "beast":
+            return None
+        
+        # Get next evolution info
+        progress_info = self.evolution.get_progress_to_next_stage(self.stage, self.balance)
+        
+        next_stage = progress_info["next_stage"]
+        needed = progress_info["needed_eth"]
+        progress_pct = progress_info["progress_percent"]
+        
+        # Create progress bar
+        progress_bar = get_progress_bar(self.balance, self.evolution.thresholds[next_stage])
+        
+        # Format tweet
+        current_emoji = get_emoji_for_stage(self.stage)
+        next_emoji = get_emoji_for_stage(next_stage)
+        
+        tweet = f"{current_emoji} → {next_emoji} evolution progress:\n\n"
+        tweet += f"{progress_bar}\n\n"
+        tweet += f"balance: {format_eth(self.balance)}\n"
+        tweet += f"need: {format_eth(needed)} more\n\n"
+        tweet += f"feed me: {self.wallet.get_shortened_address()}"
+        
+        return tweet
     
     def think_and_tweet(self):
         """
-        Main action loop - called every hour
-        Now includes wallet checking and evolution!
+        Main action loop - now with progress updates!
         """
         logger.info("PolyPuff is thinking...")
         
@@ -111,29 +150,33 @@ class PolyPuffAgent:
             # FIRST: Check wallet and handle evolution
             self.check_wallet_and_evolve()
             
-            # Build context for AI (now includes real balance!)
-            context = {
-                "balance": self.balance,
-                "stage": self.stage,
-                "recent_activity": self.get_recent_activity(),
-                "time_of_day": self.get_time_of_day(),
-                "tweet_count": self.tweet_count,
-                "wallet_address": self.wallet.get_shortened_address() if self.wallet else None
-            }
-            
-            # Generate tweet using AI
-            tweet_text = self.ai.generate_tweet(self.stage, context)
-            
-            # Add wallet address occasionally (30% chance)
-            if self.wallet and self.balance < 0.02:  # Only if not yet beast
-                import random
-                if random.random() < 0.3:  # 30% of tweets
-                    tweet_text += f"\n\nfeed me: {self.wallet.get_shortened_address()}"
-            
-            # Get image for current stage (optional)
-            image_path = STAGE_PROMPTS[self.stage].get("image")
-            if image_path and not os.path.exists(image_path):
+            # Decide tweet type
+            if self.should_post_progress_update():
+                # Post progress update
+                tweet_text = self.generate_progress_tweet()
                 image_path = None
+                logger.info("Posting progress update")
+            else:
+                # Normal AI-generated tweet
+                context = {
+                    "balance": self.balance,
+                    "stage": self.stage,
+                    "recent_activity": self.get_recent_activity(),
+                    "time_of_day": self.get_time_of_day(),
+                    "tweet_count": self.tweet_count,
+                    "wallet_address": self.wallet.get_shortened_address() if self.wallet else None
+                }
+                
+                tweet_text = self.ai.generate_tweet(self.stage, context)
+                
+                # Add wallet address occasionally (30% chance if not beast)
+                if self.wallet and self.balance < self.evolution.thresholds.get("beast", 0.02):
+                    if random.random() < 0.3:
+                        tweet_text += f"\n\nfeed me: {self.wallet.get_shortened_address()}"
+                
+                image_path = STAGE_PROMPTS[self.stage].get("image")
+                if image_path and not os.path.exists(image_path):
+                    image_path = None
             
             # Post to Twitter
             success = self.twitter.post_tweet(tweet_text, image_path)

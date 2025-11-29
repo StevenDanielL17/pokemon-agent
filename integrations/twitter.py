@@ -3,6 +3,7 @@ import os
 from dotenv import load_dotenv
 from utils.logger import logger
 from typing import Optional
+from utils.retry import retry
 
 load_dotenv()
 
@@ -41,7 +42,7 @@ class TwitterClient:
             self.client = None
             self.api_v1 = None
 
-    
+    @retry(max_attempts=3, delay=5)
     def post_tweet(self, text: str, image_path: Optional[str] = None) -> bool:
         """
         Post a tweet with optional image
@@ -87,10 +88,10 @@ class TwitterClient:
             
         except tweepy.TweepyException as e:
             logger.error(f"Twitter API error: {str(e)}")
-            return False
+            raise # Re-raise for retry logic
         except Exception as e:
             logger.error(f"Unexpected error posting tweet: {str(e)}")
-            return False
+            raise # Re-raise for retry logic
     
     def get_mentions(self, limit: int = 10):
         """
@@ -168,3 +169,4 @@ def test_twitter_connection():
 if __name__ == "__main__":
     # Run this file directly to test
     test_twitter_connection()
+

@@ -18,10 +18,24 @@ if os.name == 'nt':  # Windows only
 
 import time
 import schedule
+import signal
 from core.agent import PolyPuffAgent
 from utils.logger import logger
 from config.settings import settings
 
+
+def signal_handler(sig, frame):
+    """
+    Handle Ctrl+C gracefully
+    """
+    logger.info("\nShutdown signal received...")
+    logger.info("Saving state...")
+    
+    # Save any pending state here
+    # (agent already saves on each tweet, so this is just for safety)
+    
+    logger.info("PolyPuff is going to sleep. Goodnight!")
+    sys.exit(0)
 
 def main():
     """
@@ -57,6 +71,10 @@ def main():
     if settings.DEV_MODE:
         logger.info("Running in DEV MODE - tweets will not be posted to Twitter")
     
+    # Register signal handler
+    signal.signal(signal.SIGINT, signal_handler)
+    signal.signal(signal.SIGTERM, signal_handler)
+    
     # Initialize agent
     agent = PolyPuffAgent()
     
@@ -79,6 +97,8 @@ def main():
             time.sleep(60)  # Check every minute
             
     except KeyboardInterrupt:
+        # This block might not be reached if signal_handler catches it first,
+        # but it's good as a fallback
         logger.info("\nPolyPuff is going to sleep...")
         logger.info("State saved. Run again to resume!")
 
