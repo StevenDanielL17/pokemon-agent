@@ -4,32 +4,6 @@ import random
 from dotenv import load_dotenv
 from config.prompts import STAGE_PROMPTS, FALLBACK_TWEETS
 from config.settings import settings
-from utils.logger import logger
-from utils.retry import retry
-
-load_dotenv()
-
-class GeminiClient:
-    """
-    Handles all Google Gemini AI interactions for generating tweets
-    Day 4: Enhanced with variety tracking
-    """
-    
-    def __init__(self):
-        genai.configure(api_key=settings.GOOGLE_API_KEY)
-        self.model = genai.GenerativeModel('gemini-1.5-flash')
-        self.last_tweet_type = None
-        self.tweet_history = []
-        logger.info("Google Gemini client initialized (FREE)")
-    
-    @retry(max_attempts=3, delay=5)
-    def generate_tweet(self, stage: str, context: dict) -> str:
-        """
-        Generate a tweet based on current evolution stage and context
-        Now with variety enforcement!
-        
-        Args:
-            stage: Current evolution stage ("egg", "slime", "beast", "sick")
             context: Dictionary with balance, recent_activity, etc.
         
         Returns:
