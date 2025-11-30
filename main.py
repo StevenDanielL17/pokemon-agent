@@ -76,24 +76,6 @@ def main():
     signal.signal(signal.SIGTERM, signal_handler)
     
     # Initialize agent
-    agent = PolyPuffAgent()
-    
-    # Tweet immediately on startup
-    logger.info("Posting initial tweet...")
-    agent.think_and_tweet()
-    
-    # Schedule tweets every hour
-    interval = settings.TWEET_INTERVAL_MINUTES
-    schedule.every(interval).minutes.do(agent.think_and_tweet)
-    
-    logger.info("Agent is now running!")
-    logger.info(f"Will tweet every {interval} minutes")
-    logger.info("Press Ctrl+C to stop")
-    
-    # Main loop
-    try:
-        while True:
-            schedule.run_pending()
             time.sleep(60)  # Check every minute
             
     except KeyboardInterrupt:

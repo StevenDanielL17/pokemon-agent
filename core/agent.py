@@ -4,6 +4,7 @@ from integrations.twitter import TwitterClient
 from integrations.gemini_client import GeminiClient
 from core.wallet import WalletManager
 from core.evolution import EvolutionManager
+from integrations.interaction_handler import InteractionHandler
 from config.prompts import STAGE_PROMPTS
 from config.settings import settings
 from utils.logger import logger
@@ -45,6 +46,18 @@ class PolyPuffAgent:
         # Load previous state if exists
         self.load_state()
         
+        # Initialize interaction handler
+        if self.blockchain_enabled:
+            self.interaction_handler = InteractionHandler(
+                self.twitter, 
+                self.ai, 
+                self.stage, 
+                self.balance
+            )
+            logger.info("Interaction handler enabled")
+        else:
+            self.interaction_handler = None
+        
         logger.info(f"PolyPuff initialized! Stage: {self.stage}, Balance: {self.balance} ETH")
     
     def check_wallet_and_evolve(self):
@@ -52,20 +65,6 @@ class PolyPuffAgent:
         Check wallet balance and handle evolution
         Should be called before each tweet
         """
-        if not self.blockchain_enabled:
-            logger.info("Blockchain disabled - skipping wallet check")
-            return
-        
-        try:
-            # Get current balance
-            self.previous_balance = self.balance
-            self.balance = self.wallet.get_balance()
-            self.last_balance_check = datetime.now().isoformat()
-            
-            # Check for evolution
-            evolution_result = self.evolution.check_evolution(
-                self.stage, 
-                self.balance, 
                 self.previous_balance
             )
             
@@ -101,6 +100,24 @@ class PolyPuffAgent:
                 
         except Exception as e:
             logger.error(f"Error in wallet check: {str(e)}")
+
+    def check_interactions(self):
+        """
+        Check for and respond to social interactions
+        """
+        if not self.interaction_handler:
+            return
+        
+        try:
+            # Update handler with current state
+            self.interaction_handler.current_stage = self.stage
+            self.interaction_handler.balance = self.balance
+            
+            # Process mentions
+            self.interaction_handler.check_and_respond_to_mentions()
+            
+        except Exception as e:
+            logger.error(f"Error checking interactions: {e}")
 
     def should_post_progress_update(self) -> bool:
         """

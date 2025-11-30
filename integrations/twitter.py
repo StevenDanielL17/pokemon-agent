@@ -4,6 +4,7 @@ from dotenv import load_dotenv
 from utils.logger import logger
 from typing import Optional
 from utils.retry import retry
+from config.settings import settings
 
 load_dotenv()
 
@@ -93,37 +94,73 @@ class TwitterClient:
             logger.error(f"Unexpected error posting tweet: {str(e)}")
             raise # Re-raise for retry logic
     
-    def get_mentions(self, limit: int = 10):
+    def get_recent_mentions(self, max_results=10):
         """
         Get recent mentions of the bot
-        (For Day 4 - mention handling)
         """
-        if not self.client:
-             return []
-
         try:
+            user_id = self.get_my_user_id()
+            if not user_id:
+                return []
+            
             mentions = self.client.get_users_mentions(
-                id=self.get_my_user_id(),
-                max_results=limit
+                id=user_id,
+                max_results=max_results,
+                tweet_fields=['created_at', 'author_id']
             )
-            return mentions.data if mentions.data else []
+            
+            if mentions.data:
+                logger.info(f"Found {len(mentions.data)} mentions")
+                return mentions.data
+            else:
+                return []
+                
         except Exception as e:
-            logger.error(f"Error fetching mentions: {str(e)}")
+            logger.error(f"Error fetching mentions: {e}")
             return []
-    
-    def get_my_user_id(self) -> str:
+
+    def get_my_user_id(self):
         """
         Get the authenticated user's Twitter ID
         """
-        if not self.client:
+        try:
+            if hasattr(self, '_user_id'):
+                return self._user_id
+            
+            if not self.client:
+                return None
+            
+            user = self.client.get_me()
+            self._user_id = user.data.id
+            return self._user_id
+        except Exception as e:
+            logger.error(f"Error getting user ID: {e}")
             return None
 
+    def reply_to_tweet(self, tweet_id, reply_text):
+        """
+        Reply to a specific tweet
+        """
+        if settings.DEV_MODE:
+            logger.info(f"[DEV MODE] Would reply to {tweet_id}: {reply_text}")
+            return True
+        
+        if not self.client:
+            logger.error("Twitter client not initialized")
+            return False
+        
         try:
-            user = self.client.get_me()
-            return user.data.id
+            response = self.client.create_tweet(
+                text=reply_text,
+                in_reply_to_tweet_id=tweet_id
+            )
+            
+            logger.info(f"Posted reply: {reply_text[:50]}...")
+            return True
+            
         except Exception as e:
-            logger.error(f"Error getting user ID: {str(e)}")
-            return None
+            logger.error(f"Error posting reply: {e}")
+            return False
     
     def update_profile_image(self, image_path: str) -> bool:
         """
