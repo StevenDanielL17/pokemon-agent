@@ -59,6 +59,42 @@ class PolyPuffAgent:
             self.interaction_handler = None
         
         logger.info(f"PolyPuff initialized! Stage: {self.stage}, Balance: {self.balance} ETH")
+    def check_wallet_and_evolve(self):
+        """
+        Check wallet balance and handle evolution
+        Should be called before each tweet
+        """
+        if not self.blockchain_enabled:
+            logger.info("Blockchain disabled - skipping wallet check")
+            return
+        
+        try:
+            # Get current balance
+            self.previous_balance = self.balance
+            self.balance = self.wallet.get_balance()
+            self.last_balance_check = datetime.now().isoformat()
+            
+            # If balance increased, thank the donor
+            if self.balance > self.previous_balance:
+                increase = self.balance - self.previous_balance
+                logger.info(f"Donation received: {increase:.4f} ETH")
+                
+                if self.interaction_handler:
+                    self.interaction_handler.handle_donation_thanks(
+                        "anonymous donor",
+                        increase
+                    )
+            
+            # Check for evolution
+            evolution_result = self.evolution.check_evolution(
+                self.stage, 
+                self.balance, 
+                self.previous_balance
+            )
+            
+            # Handle evolution
+            if evolution_result["should_evolve"]:
+                old_stage = self.stage
                 self.stage = evolution_result["new_stage"]
                 
                 logger.info(f"EVOLUTION: {old_stage} -> {self.stage}")
