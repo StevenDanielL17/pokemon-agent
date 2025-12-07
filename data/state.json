@@ -1,8 +1,8 @@
 {
   "stage": "beast",
-  "balance": 0.05,
+  "balance": 0.0,
   "previous_balance": 0.05,
-  "tweet_count": 7,
-  "last_balance_check": "2025-11-28T22:34:39.925822",
-  "last_updated": "2025-11-28T22:34:44.774377"
+  "tweet_count": 8,
+  "last_balance_check": "2025-12-07T14:17:25.149708",
+  "last_updated": "2025-12-07T14:17:25.150419"
 }
