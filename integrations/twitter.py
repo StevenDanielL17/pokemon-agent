@@ -59,6 +59,12 @@ class TwitterClient:
             logger.error("Twitter client not initialized")
             return False
 
+        if settings.DEV_MODE:
+            logger.info(f"[DEV MODE] Would post tweet: {text}")
+            if image_path:
+                logger.info(f"[DEV MODE] With image: {image_path}")
+            return True
+
         try:
             # Validate tweet length
             if len(text) > 280:

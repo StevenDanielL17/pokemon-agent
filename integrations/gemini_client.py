@@ -4,6 +4,32 @@ import random
 from dotenv import load_dotenv
 from config.prompts import STAGE_PROMPTS, FALLBACK_TWEETS
 from config.settings import settings
+from utils.logger import logger
+
+load_dotenv()
+
+class GeminiClient:
+    """
+    Handles interactions with Google's Gemini API
+    """
+    
+    def __init__(self):
+        try:
+            genai.configure(api_key=settings.GOOGLE_API_KEY)
+            self.model = genai.GenerativeModel('gemini-1.5-flash')
+            self.tweet_history = []
+            self.last_tweet_type = None
+            logger.info("Gemini client initialized")
+        except Exception as e:
+            logger.error(f"Error initializing Gemini: {e}")
+            self.model = None
+
+    def generate_tweet(self, stage: str, context: dict) -> str:
+        """
+        Generate a tweet based on stage and context
+        
+        Args:
+            stage: Current evolution stage
             context: Dictionary with balance, recent_activity, etc.
         
         Returns:
