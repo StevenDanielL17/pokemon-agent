@@ -6,7 +6,7 @@
 [![Base Network](https://img.shields.io/badge/Network-Base-0052FF)](https://base.org)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-**🎥 [Watch Demo Video](#)** | **🐦 [Live on Twitter](https://twitter.com/PolyPuff_Agent)** | **💰 [Feed PolyPuff](https://basescan.org/address/YOUR_WALLET_HERE)**
+**🎥 [Watch Demo Video](#)** | **🐦 [Live on Twitter](https://twitter.com/PuffPolyAgent)** | **💰 [Feed PolyPuff](https://basescan.org/address/YOUR_WALLET_HERE)**
 
 ---
 
